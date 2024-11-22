@@ -2,42 +2,66 @@ import pandas as pd
 import glob
 import matplotlib.pyplot as plt
 
-def load_traffic_data(file_pattern):
-    all_data = []
-    for file in glob.glob(file_pattern):
-        if file.endswith('.csv') or file.endswith('.txt'):
-            df = pd.read_csv(file) if file.endswith('.csv') else pd.read_csv(file, sep='\t')
-            all_data.append(df)
-    return pd.concat(all_data, ignore_index=True)
+# Функция для обработки файлов
+def process_files(file_pattern):
+    # Получаем список всех файлов по заданному шаблону
+    files = glob.glob(file_pattern)
+    if not files:
+        print("No files found.")
+        return None
 
-def preprocess_data(df):
-    df['StartSession'] = pd.to_datetime(df['StartSession'], errors='coerce')
-    df['EndSession'] = pd.to_datetime(df['EndSession'], errors='coerce')
+    dataframes = []
     
-    # Обработка ошибок
-    df['Duration'] = pd.to_timedelta(df['Duartion'], errors='coerce')
+    for file in files:
+        # Определяем формат файла и загружаем данные
+        try:
+            if file.endswith('.csv'):
+                df = pd.read_csv(file)
+            elif file.endswith('.txt'):
+                df = pd.read_csv(file, delimiter='|')
+            else:
+                continue
+            
+            # Преобразуем время в datetime и создаем нужные столбцы
+            df['StartSession'] = pd.to_datetime(df['StartSession'])
+            df['EndSession'] = pd.to_datetime(df['EndSession'])
+            df['Traffic'] = df['UpTx'] + df['DownTx']  # Общий трафик в байтах
+            
+            # Добавляем DataFrame в список
+            dataframes.append(df)
+        
+        except (TypeError, ValueError) as e:
+            print(f"Error processing {file}: {e}")
     
-    # Убедимся, что UpTx и DownTx являются числовыми
-    df['UpTx'] = pd.to_numeric(df['UpTx'], errors='coerce')
-    df['DownTx'] = pd.to_numeric(df['DownTx'], errors='coerce')
-    
-    return df
+    return pd.concat(dataframes, ignore_index=True) if dataframes else None
 
-def plot_traffic(df):
-    df_grouped = df.groupby(df['StartSession'].dt.date).agg({'UpTx': 'sum', 'DownTx': 'sum'}).reset_index()
+# Функция для построения графика
+def plot_traffic(data):
+    if data is None or data.empty:
+        print("No data to plot.")
+        return
 
+    # Группируем данные по часу и суммируем трафик
+    data.set_index('StartSession', inplace=True)
+    hourly_traffic = data['Traffic'].resample('H').sum().reset_index()
+    
+    # Преобразуем время в секунды
+    hourly_traffic['TimeInSeconds'] = (hourly_traffic['StartSession'] - hourly_traffic['StartSession'].min()).dt.total_seconds()
+    
+    # Построение графика
     plt.figure(figsize=(12, 6))
-    plt.plot(df_grouped['StartSession'], df_grouped['UpTx'], label='Upload Traffic', marker='o')
-    plt.plot(df_grouped['StartSession'], df_grouped['DownTx'], label='Download Traffic', marker='o')
-    plt.title('Traffic Dynamics')
-    plt.xlabel('Date')
-    plt.ylabel('Traffic (bytes)')
-    plt.legend()
-    plt.xticks(rotation=45)
-    plt.tight_layout()
+    plt.plot(hourly_traffic['TimeInSeconds'], hourly_traffic['Traffic'], marker='o')
+    plt.title('Traffic Dynamics Over Time')
+    plt.xlabel('Time in Seconds')
+    plt.ylabel('Traffic (Bytes)')
+    plt.grid()
     plt.show()
 
-file_pattern = 'telecom10k/*'  # Укажите путь к вашим файлам
-traffic_data = load_traffic_data(file_pattern)
-cleaned_data = preprocess_data(traffic_data)
-plot_traffic(cleaned_data)
+# Основная часть программы
+if __name__ == "__main__":
+    # Путь к файлам (измените при необходимости)
+    file_pattern = 'telecom10k/*'
+    
+    # Обработка файлов и построение графика
+    traffic_data = process_files(file_pattern)
+    plot_traffic(traffic_data)
