@@ -28,7 +28,7 @@ def process_files(file_pattern):
         file = files[i]
         if j == 0:
             startPeriod = pd.to_datetime(getTimestampFileName(file)) - pd.Timedelta(minutes=10)
-            print(startPeriod)
+            #print(startPeriod)
         # Определяем формат файла и загружаем данные
         try:
             if file.endswith('.csv'):
@@ -54,7 +54,7 @@ def process_files(file_pattern):
 
             # Удаление лишних данных
             df = df.drop('IdSession', axis=1)
-            df = df.drop('IdPSX', axis=1)
+            #df = df.drop('IdPSX', axis=1)
             df = df.drop('StartSession', axis=1)
             df = df.drop('EndSession', axis=1)
             df = df.drop('Duartion', axis=1)
@@ -66,21 +66,29 @@ def process_files(file_pattern):
             hourdf.append(df)
             j += 1
             if j == 6 or len(files) - 1 == i:
-                dataframes.append(pd.concat(hourdf, ignore_index=True))
+                js = pd.concat(hourdf, ignore_index=True).to_json(orient='records')
+                key_p1 = str(df.iloc[0]['Start1hPeriod'])
+                key_p2 = int(df.iloc[0]['IdPSX'])
+                print(f"{key_p2} {key_p1}")
+                r.set(f"{key_p2} {key_p1}", js)
+                #dataframes.append(pd.concat(hourdf, ignore_index=True))
                 hourdf=[]
                 j = 0
+
         except (TypeError, ValueError) as e:
             print(f"Error processing {file}: {e}")
 
-    return dataframes #массив df['IdSubscriber', 'Start1hPeriod', 'Start10mPeriod', 'UpTx', 'DownTx']
+    #return dataframes #массив df['IdSubscriber', 'Start1hPeriod', 'Start10mPeriod', 'UpTx', 'DownTx']
 
 def load(df):
     for i in range(len(df)):
         js = df[i].to_json(orient='records')
-        key = str(df[i].iloc[0]['Start1hPeriod'])
-        r.set(key, js)
+        key_p1 = str(df[i].iloc[0]['Start1hPeriod'])
+        key_p2 = str(df[i].iloc[0]['IdPSX'])
+        print(f"{key_p2} {key_p1}")
+        r.set(f"{key_p2} {key_p1}", js)
 
 if __name__ == "__main__":
     file_pattern = 'telecom100k/*'
-    df = process_files(file_pattern)
-    load(df)
+    process_files(file_pattern)
+    #load(df)
