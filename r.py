@@ -81,12 +81,9 @@ def process_files(file_pattern):
     #return dataframes #массив df['IdSubscriber', 'Start1hPeriod', 'Start10mPeriod', 'UpTx', 'DownTx']
 
 def load(df):
-    for i in range(len(df)):
-        js = df[i].to_json(orient='records')
-        key_p1 = str(df[i].iloc[0]['Start1hPeriod'])
-        key_p2 = str(df[i].iloc[0]['IdPSX'])
-        print(f"{key_p2} {key_p1}")
-        r.set(f"{key_p2} {key_p1}", js)
+    js = df.to_json(orient='records')
+    key = "Название таблицы"
+    r.set(key, js)
 
 if __name__ == "__main__":
     file_pattern = 'telecom100k/*'
