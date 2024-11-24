@@ -8,7 +8,7 @@ pd.set_option('display.max_columns', None)
 
 def getTimestampFileName(file):
     return (file.split(' ')[0].split('-')[0][-4:]+'-'+file.split(' ')[0].split('-')[1]+'-'+file.split(' ')[0].split('-')[2]\
-              +' '+file.split(' ')[1].split('')[0]+':'+file.split(' ')[1].split('')[1]+':'+file.split(' ')[1].split('')[2][:2])
+              +' '+file.split(' ')[1].split(':')[0]+':'+file.split(' ')[1].split(':')[1]+':'+file.split(' ')[1].split(':')[2][:2])
 
 # Функция для обработки файлов
 def process_files(file_pattern):
@@ -86,6 +86,6 @@ def load(df):
     r.set(key, js)
 
 if __name__ == "__main__":
-    file_pattern = 'telecom100k/*'
+    file_pattern = 'telecom10k/*'
     process_files(file_pattern)
     #load(df)
